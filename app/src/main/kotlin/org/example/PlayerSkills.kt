@@ -24,4 +24,7 @@ data class PlayerSkills(
         require(bloqueo in 50..100) { "El valor de bloqueo debe estar entre 1 y 100, pero se recibió: $bloqueo" }
         require(definicion in 50..100) { "El valor de definición debe estar entre 1 y 100, pero se recibió: $definicion" }
     }
+    override fun toString(): String {
+        return "Habilidades: Tiro = $tiro | Defensa = $defensa | Velocidad = $velocidad | Bloqueo = $bloqueo | Definición = $definicion"
+    }
 }
