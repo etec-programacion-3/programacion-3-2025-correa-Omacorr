@@ -18,12 +18,13 @@ data class PlayerSkills(
     val definicion: Int
 ){
     init {
-        require(tiro in 50..100) { "El valor de tiro debe estar entre 1 y 100, pero se recibió: $tiro" }
-        require(defensa in 50..100) { "El valor de defensa debe estar entre 1 y 100, pero se recibió: $defensa" }
-        require(velocidad in 50..100) { "El valor de velocidad debe estar entre 1 y 100, pero se recibió: $velocidad" }
-        require(bloqueo in 50..100) { "El valor de bloqueo debe estar entre 1 y 100, pero se recibió: $bloqueo" }
-        require(definicion in 50..100) { "El valor de definición debe estar entre 1 y 100, pero se recibió: $definicion" }
+        require(tiro in 50..100) { "El valor de tiro debe estar entre 50 y 100, pero se recibió: $tiro" }
+        require(defensa in 50..100) { "El valor de defensa debe estar entre 50 y 100, pero se recibió: $defensa" }
+        require(velocidad in 50..100) { "El valor de velocidad debe estar entre 50 y 100, pero se recibió: $velocidad" }
+        require(bloqueo in 50..100) { "El valor de bloqueo debe estar entre 50 y 100, pero se recibió: $bloqueo" }
+        require(definicion in 50..100) { "El valor de definición debe estar entre 50 y 100, pero se recibió: $definicion" }
     }
+
     override fun toString(): String {
         return "Habilidades: Tiro = $tiro | Defensa = $defensa | Velocidad = $velocidad | Bloqueo = $bloqueo | Definición = $definicion"
     }

@@ -8,5 +8,5 @@ fun main(){
     val unc = Team("UNCuyo")
     unc.seleccJugador(pancho)
     unc.seleccJugador(checho)
-    println(unc.toString())
+    println(pancho.entrenar)
 }

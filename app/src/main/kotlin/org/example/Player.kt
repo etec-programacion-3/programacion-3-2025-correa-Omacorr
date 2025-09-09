@@ -9,6 +9,9 @@ class Player(
     val posicion : PlayerPosition,
     val habilidades : PlayerSkills
 ) {
+    fun entrenar(habilidad: PlayerSkills){
+
+    }
     override fun toString(): String {
         return "\n-- Nombre = $nombre | Edad = $edad | Altura = $altura | Posición = $posicion\n${habilidades.toString()}"
     }
