@@ -8,7 +8,7 @@ class Team(val name: String) {
     val plantilla: List<Player>
         get() = jugadores.toList()
 
-    // plsmtills solo se puede modificar por medio de la private var jugadores
+    // El val plantilla solo se puede modificar por medio de la private var jugadores
     fun seleccJugador(jugador: Player) {
         if (jugadores.size < 5) {
             jugadores.add(jugador)
