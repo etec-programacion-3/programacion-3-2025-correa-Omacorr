@@ -10,6 +10,6 @@ class Player(
     val habilidades : PlayerSkills
 ) {
     override fun toString(): String {
-        return "Jugador: Nombre = $nombre | Edad = $edad | Altura = $altura | Posición = $posicion\n${habilidades.toString()}"
+        return "\n-- Nombre = $nombre | Edad = $edad | Altura = $altura | Posición = $posicion\n${habilidades.toString()}"
     }
 }
