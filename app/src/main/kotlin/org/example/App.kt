@@ -6,7 +6,5 @@ fun main(){
     val pancho = Player(16, "Pancho", 1.95, posicion, skills)
     val checho = Player(19, "Checho", 1.80, PlayerPosition.PIVOT, PlayerSkills(80, 57, 60, 62, 70))
     val unc = Team("UNCuyo")
-    unc.seleccJugador(pancho)
-    unc.seleccJugador(checho)
-    println(pancho.entrenar)
+    println(pancho.entrenar("tiro"))
 }

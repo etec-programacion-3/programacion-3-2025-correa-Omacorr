@@ -11,11 +11,12 @@ package org.example
  * - Sin data class necesitarías 30+ líneas manuales propensas a errores
  */
 data class PlayerSkills(
-    val tiro: Int,
-    val defensa: Int,
-    val velocidad: Int,
-    val bloqueo: Int,
-    val definicion: Int
+    //Uso var para poder modificar sus valores luego con la función entrenar
+    var tiro: Int,
+    var defensa: Int,
+    var velocidad: Int,
+    var bloqueo: Int,
+    var definicion: Int
 ){
     init {
         require(tiro in 50..100) { "El valor de tiro debe estar entre 50 y 100, pero se recibió: $tiro" }
