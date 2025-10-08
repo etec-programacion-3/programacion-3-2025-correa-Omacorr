@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.config import settings
-# from .api.api_v1.api import api_router  # Lo comentamos por ahora
+from .api.api_v1.api import api_router  # Lo comentamos por ahora
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -19,7 +19,7 @@ app.add_middleware(
 )
 
 # Incluir routers (lo haremos más adelante)
-# app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 async def root():
