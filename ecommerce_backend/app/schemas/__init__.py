@@ -21,3 +21,42 @@ __all__ = [
     "RegisterRequest", 
     "AuthResponse"
 ]
+
+from .mensaje import (
+    ConversacionCreate,
+    ConversacionResponse,
+    ConversacionConUsuario,
+    MensajeCreate,
+    MensajeResponse,
+    MensajeConRemitente,
+    MarcarMensajesLeidos
+)
+
+from .producto import (
+    ProductoCreate,
+    ProductoUpdate,
+    ProductoResponse,
+    ProductoConVendedor,
+    ProductoEnLista,
+    ProductosPaginados
+)
+
+__all__ = [
+    # ... los anteriores ...
+    "ProductoCreate",
+    "ProductoUpdate",
+    "ProductoResponse",
+    "ProductoConVendedor",
+    "ProductoEnLista",
+    "ProductosPaginados",
+    "ConversacionCreate",
+    "ConversacionResponse",
+    "ConversacionConUsuario",
+    "MensajeCreate",
+    "MensajeResponse",
+    "MensajeConRemitente",
+    "MarcarMensajesLeidos"
+]
+
+
+
