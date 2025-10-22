@@ -1,0 +1,12 @@
+[2025-10-22 12:21:41] NOTIFICATION: 'juan' → 'maria' | Conversation: 1 | Preview: probando las notificaciones en segundo plano
+================================================================================
+[2025-10-22 12:28:27] 🔔 NUEVA NOTIFICACIÓN
+================================================================================
+Tipo: MENSAJE_NUEVO
+De: juan
+Para: maria
+Conversación ID: 1
+Preview: probando las notificaciones en segundo plano segun...
+Estado: ✅ Notificación procesada
+================================================================================
+

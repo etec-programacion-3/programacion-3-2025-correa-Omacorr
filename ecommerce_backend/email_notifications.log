@@ -1,0 +1,17 @@
+[2025-10-22 12:21:41] EMAIL
+To: maria@test.com
+Subject: Nuevo mensaje de juan
+Content: juan te ha enviado un mensaje: probando las notificaciones en segundo plano
+--------------------------------------------------
+
+********************************************************************************
+📧 EMAIL NOTIFICATION
+********************************************************************************
+Timestamp: 2025-10-22 12:28:27
+To: maria@test.com
+Subject: Nuevo mensaje de juan
+Content:
+  juan te ha enviado un mensaje: probando las notificaciones en segundo plano segunda vez
+Status: ✅ Email enviado (simulado)
+********************************************************************************
+
