@@ -1,6 +1,7 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session
+from app.utils.notifications import enviar_notificacion_mensaje, enviar_notificacion_email_simulado
 
 from app.database import get_db
 from app.schemas.mensaje import (
@@ -94,7 +95,7 @@ def listar_conversaciones(
             continue
         
         # Obtener último mensaje
-        mensajes = get_mensajes_conversacion(db, conv.id, skip=0, limit=1)
+        mensajes = get_mensajes_conversacion(db, conv.id, skip=0, limit=100)
         ultimo_mensaje = mensajes[-1] if mensajes else None
         
         # Contar mensajes no leídos
@@ -143,11 +144,15 @@ def obtener_conversacion(
 def enviar_mensaje(
     conversacion_id: int,
     mensaje_data: MensajeCreate,
+    background_tasks: BackgroundTasks,  # ← NUEVO parámetro
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_active_user)
 ):
     """
     Envía un mensaje en una conversación existente
+    
+    ⚡ Nota: Después de guardar el mensaje, se ejecuta una tarea en segundo plano
+    que simula el envío de una notificación al destinatario.
     """
     # Verificar que la conversación existe
     conversacion = get_conversacion_by_id(db, conversacion_id)
@@ -171,6 +176,28 @@ def enviar_mensaje(
         remitente_id=current_user.id,
         contenido=mensaje_data.contenido
     )
+    
+    # Determinar quién es el destinatario
+    destinatario_id = conversacion.usuario2_id if conversacion.usuario1_id == current_user.id else conversacion.usuario1_id
+    destinatario = get_user_by_id(db, destinatario_id)
+    
+    # Agregar tarea en segundo plano para notificar al destinatario
+    if destinatario:
+        background_tasks.add_task(
+            enviar_notificacion_mensaje,
+            remitente_username=current_user.username,
+            destinatario_username=destinatario.username,
+            contenido_mensaje=mensaje_data.contenido,
+            conversacion_id=conversacion_id
+        )
+        
+        # Opcionalmente, enviar notificación por email (simulado)
+        background_tasks.add_task(
+            enviar_notificacion_email_simulado,
+            destinatario_email=destinatario.email,
+            asunto=f"Nuevo mensaje de {current_user.username}",
+            contenido=f"{current_user.username} te ha enviado un mensaje: {mensaje_data.contenido[:100]}"
+        )
     
     return mensaje
 

@@ -1,2 +1,9 @@
-usuario1: 
-usuario2:
+Usuario 1:
+- Email: juan@test.com
+- Username: juan
+- Password: 123456
+
+Usuario 2:
+- Email: maria@test.com
+- Username: maria
+- Password: 123456
