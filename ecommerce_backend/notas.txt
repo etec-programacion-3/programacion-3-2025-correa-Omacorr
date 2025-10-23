@@ -7,3 +7,8 @@ Usuario 2:
 - Email: maria@test.com
 - Username: maria
 - Password: 123456
+
+Usuario 3:
+- Email: mateg@gmail.com
+- Username": mate
+- Password: 123456
