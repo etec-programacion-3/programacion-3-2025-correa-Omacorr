@@ -41,6 +41,14 @@ from .producto import (
     ProductosPaginados
 )
 
+from .calificacion import (
+    CalificacionCreate,
+    CalificacionUpdate,
+    CalificacionResponse,
+    CalificacionConUsuario,
+    CalificacionesStats
+)
+
 __all__ = [
     # ... los anteriores ...
     "ProductoCreate",
@@ -55,7 +63,12 @@ __all__ = [
     "MensajeCreate",
     "MensajeResponse",
     "MensajeConRemitente",
-    "MarcarMensajesLeidos"
+    "MarcarMensajesLeidos",
+    "CalificacionCreate",
+    "CalificacionUpdate",
+    "CalificacionResponse",
+    "CalificacionConUsuario",
+    "CalificacionesStats"
 ]
 
 
