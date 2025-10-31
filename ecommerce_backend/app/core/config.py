@@ -15,7 +15,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # CORS
-    BACKEND_CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:8080"]
+    BACKEND_CORS_ORIGINS: list = [
+    "http://localhost:3000", 
+    "http://localhost:8080",
+    "http://localhost:5174",  # Tu frontend actual
+    "http://localhost:5173"   # Por si cambias puertos
+]
     
     class Config:
         env_file = ".env"

@@ -70,7 +70,7 @@ export const api = {
     },
 
     getCurrentUser: async (): Promise<User> => {
-      const response = await apiClient.get('/auth/me');
+      const response = await apiClient.get('/users/me/profile');
       return response.data;
     },
 
