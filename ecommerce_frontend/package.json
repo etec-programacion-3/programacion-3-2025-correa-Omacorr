@@ -1,43 +1,38 @@
 {
   "name": "ecommerce-frontend",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.0",
   "type": "module",
-  "description": "Frontend para E-commerce con React + TypeScript",
-  "author": "Omar Correa",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 5174",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.1",
     "axios": "^1.6.2",
     "js-cookie": "^3.0.5",
-    "lucide-react": "^0.294.0",
-    "react-hook-form": "^7.48.2",
-    "@hookform/resolvers": "^3.3.2"
+    "lucide-react": "^0.552.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.1"
   },
   "devDependencies": {
+    "@tailwindcss/line-clamp": "^0.4.4",
+    "@tailwindcss/postcss": "^4.1.16",
+    "@types/js-cookie": "^3.0.6",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
-    "@types/js-cookie": "^3.0.6",
     "@typescript-eslint/eslint-plugin": "^6.10.0",
     "@typescript-eslint/parser": "^6.10.0",
     "@vitejs/plugin-react": "^4.1.1",
-    "autoprefixer": "^10.4.16",
+    "autoprefixer": "^10.4.21",
     "eslint": "^8.53.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.4",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^3.3.6",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.16",
     "typescript": "^5.2.2",
     "vite": "^4.5.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   }
 }

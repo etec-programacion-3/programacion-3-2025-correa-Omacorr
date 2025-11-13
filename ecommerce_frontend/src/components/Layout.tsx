@@ -1,14 +1,14 @@
-// src/components/Layout.tsx
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useCart } from '../contexts/CartContext';
 import { 
   ShoppingBag, 
   User, 
   LogOut, 
-  Menu, 
-  X,
-  Star,
   MessageCircle,
-  Plus
+  Plus,
+  ShoppingCart,
+  ChevronDown,
+  MapPin
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { api, isAuthenticated } from '../services/api';
@@ -17,42 +17,75 @@ interface User {
   username: string;
   email: string;
   full_name?: string;
+  direccion?: string;
+  telefono?: string;
 }
 
 const Layout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  
+  const { totalItems } = useCart();
 
   // Verificar autenticación al cargar
   useEffect(() => {
-    const checkAuth = async () => {
-      if (isAuthenticated()) {
-        try {
-          const user = await api.auth.getCurrentUser();
-          setCurrentUser(user);
-        } catch (error) {
-          console.error('Error getting user:', error);
-          // Si falla, probablemente el token expiró
-          setCurrentUser(null);
-        }
+  const checkAuth = async () => {
+    console.log('=== CHECKING AUTH IN:', location.pathname, '===');
+    
+    if (isAuthenticated()) {
+      try {
+        const user = await api.auth.getCurrentUser();
+        console.log('Usuario encontrado:', user);
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error auth:', error);
+        setCurrentUser(null);
       }
-      setIsLoading(false);
-    };
+    } else {
+      console.log('No authenticated');
+      setCurrentUser(null);
+    }
+    setIsLoading(false);
+  };
 
-    checkAuth();
-  }, []);
+  checkAuth();
+}, [location.pathname]);
 
   const handleLogout = () => {
     api.auth.logout();
     setCurrentUser(null);
     navigate('/');
+    setShowUserMenu(false);
   };
 
   const isActivePath = (path: string) => {
     return location.pathname === path;
+  };
+
+  // Cerrar menú cuando se hace click fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (showUserMenu && !target.closest('.user-menu')) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showUserMenu]);
+
+  // Función para formatear dirección
+  const getFormattedAddress = () => {
+    if (currentUser?.direccion) {
+      return currentUser.direccion.length > 25 
+        ? currentUser.direccion.substring(0, 25) + '...' 
+        : currentUser.direccion;
+    }
+    return 'Agregar dirección...';
   };
 
   if (isLoading) {
@@ -65,32 +98,113 @@ const Layout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Navbar */}
-      <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-        <div className="container-custom">
-          <div className="flex justify-between items-center h-16">
+      {/* Navbar - Logo a la izquierda, contenido no centrado */}
+      <nav style={{
+        backgroundColor: '#2d3748',
+        borderBottom: '1px solid #4a5568',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        <div style={{
+          maxWidth: '100%',
+          margin: '0',
+          padding: '0 1rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            height: '60px',
+            justifyContent: 'flex-start',
+            gap: '2rem'
+          }}>
             
-            {/* Logo */}
+            {/* Logo completamente a la izquierda */}
             <Link 
               to="/" 
-              className="flex items-center space-x-2 text-xl font-bold text-primary-600 hover:text-primary-700 transition-colors"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                textDecoration: 'none',
+                color: '#ffffff',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.25rem',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
             >
-              <ShoppingBag className="h-8 w-8" />
+              <ShoppingBag style={{ height: '28px', width: '28px' }} />
               <span>E-Commerce</span>
             </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              <Link
-                to="/"
-                className={`nav-link ${isActivePath('/') ? 'nav-link-active' : ''}`}
+            {/* Botón "Enviar a" - Siempre visible */}
+            {currentUser && (
+              <button
+                onClick={() => navigate('/profile')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  borderRadius: '0.25rem',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontSize: '0.875rem'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
               >
-                Inicio
-              </Link>
-              
+                <MapPin style={{ height: '16px', width: '16px' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#cbd5e0' }}>Enviar a</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>
+                    {getFormattedAddress()}
+                  </span>
+                </div>
+              </button>
+            )}
+
+            {/* Navegación Central */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto', marginRight: '2rem' }}>
               <Link
                 to="/products"
-                className={`nav-link ${isActivePath('/products') ? 'nav-link-active' : ''}`}
+                style={{
+                  padding: '0.75rem 1rem',
+                  borderRadius: '0.25rem',
+                  fontWeight: '500',
+                  fontSize: '0.9rem',
+                  transition: 'all 0.2s',
+                  textDecoration: 'none',
+                  border: isActivePath('/products') ? '1px solid #ffffff' : '1px solid transparent',
+                  backgroundColor: isActivePath('/products') ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  color: '#ffffff'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActivePath('/products')) {
+                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActivePath('/products')) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
               >
                 Productos
               </Link>
@@ -99,15 +213,58 @@ const Layout = () => {
                 <>
                   <Link
                     to="/conversations"
-                    className={`nav-link ${isActivePath('/conversations') ? 'nav-link-active' : ''}`}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      borderRadius: '0.25rem',
+                      fontWeight: '500',
+                      fontSize: '0.9rem',
+                      transition: 'all 0.2s',
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      border: isActivePath('/conversations') ? '1px solid #ffffff' : '1px solid transparent',
+                      backgroundColor: isActivePath('/conversations') ? 'rgba(255,255,255,0.1)' : 'transparent',
+                      color: '#ffffff'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActivePath('/conversations')) {
+                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActivePath('/conversations')) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
+                    }}
                   >
-                    <MessageCircle className="h-4 w-4 inline mr-1" />
+                    <MessageCircle style={{ height: '16px', width: '16px' }} />
                     Mensajes
                   </Link>
                   
                   <Link
                     to="/my-products"
-                    className={`nav-link ${isActivePath('/my-products') ? 'nav-link-active' : ''}`}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      borderRadius: '0.25rem',
+                      fontWeight: '500',
+                      fontSize: '0.9rem',
+                      transition: 'all 0.2s',
+                      textDecoration: 'none',
+                      border: isActivePath('/my-products') ? '1px solid #ffffff' : '1px solid transparent',
+                      backgroundColor: isActivePath('/my-products') ? 'rgba(255,255,255,0.1)' : 'transparent',
+                      color: '#ffffff'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActivePath('/my-products')) {
+                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActivePath('/my-products')) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
+                    }}
                   >
                     Mis Productos
                   </Link>
@@ -115,182 +272,265 @@ const Layout = () => {
               )}
             </div>
 
-            {/* User Menu / Auth Buttons */}
-            <div className="hidden md:flex items-center space-x-4">
+            {/* Área derecha */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               {currentUser ? (
-                <div className="flex items-center space-x-4">
+                <>
+                  {/* Carrito */}
+                  <Link
+                    to="/cart"
+                    style={{
+                      position: 'relative',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '0.25rem',
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      color: '#ffffff',
+                      border: isActivePath('/cart') ? '1px solid #ffffff' : '1px solid transparent',
+                      backgroundColor: isActivePath('/cart') ? 'rgba(255,255,255,0.1)' : 'transparent',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActivePath('/cart')) {
+                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActivePath('/cart')) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
+                    }}
+                  >
+                    <ShoppingCart style={{ height: '20px', width: '20px' }} />
+                    <span style={{ fontSize: '0.9rem' }}>Carrito</span>
+                    {totalItems > 0 && (
+                      <span style={{
+                        position: 'absolute',
+                        top: '0.25rem',
+                        right: '0.25rem',
+                        backgroundColor: '#e53e3e',
+                        color: '#ffffff',
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
+                        borderRadius: '50%',
+                        width: '20px',
+                        height: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        {totalItems > 9 ? '9+' : totalItems}
+                      </span>
+                    )}
+                  </Link>
+
+                  {/* Botón Vender */}
                   <Link
                     to="/products/create"
-                    className="btn-primary btn-sm flex items-center space-x-1"
+                    style={{
+                      backgroundColor: '#68d391',
+                      color: '#1a202c',
+                      padding: '0.75rem 1.25rem',
+                      borderRadius: '0.25rem',
+                      fontWeight: '600',
+                      fontSize: '0.9rem',
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      transition: 'all 0.2s',
+                      border: 'none'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#48bb78';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#68d391';
+                    }}
                   >
-                    <Plus className="h-4 w-4" />
-                    <span>Vender</span>
+                    <Plus style={{ height: '16px', width: '16px' }} />
+                    Vender
                   </Link>
-                  
-                  <div className="relative group">
-                    <button className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 transition-colors">
-                      <User className="h-5 w-5" />
-                      <span className="text-sm font-medium">{currentUser.username}</span>
+
+                  {/* Avatar y Menú de Usuario con click funcional */}
+                  <div style={{ position: 'relative' }} className="user-menu">
+                    <button 
+                      onClick={() => setShowUserMenu(!showUserMenu)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.5rem 0.75rem',
+                        backgroundColor: showUserMenu ? 'rgba(255,255,255,0.1)' : 'transparent',
+                        border: '1px solid transparent',
+                        borderRadius: '0.25rem',
+                        color: '#ffffff',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!showUserMenu) {
+                          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!showUserMenu) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }
+                      }}
+                    >
+                      {/* Avatar circular */}
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        backgroundColor: '#718096',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        fontWeight: 'bold',
+                        fontSize: '0.875rem'
+                      }}>
+                        {currentUser.username.charAt(0).toUpperCase()}
+                      </div>
+                      
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#cbd5e0' }}>Hola,</div>
+                        <div style={{ fontSize: '0.875rem', fontWeight: '600' }}>{currentUser.username}</div>
+                      </div>
+                      
+                      <ChevronDown style={{ 
+                        height: '14px', 
+                        width: '14px',
+                        transform: showUserMenu ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s'
+                      }} />
                     </button>
                     
                     {/* Dropdown Menu */}
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                      <div className="py-1">
-                        <Link
-                          to="/profile"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                        >
-                          <User className="h-4 w-4 inline mr-2" />
-                          Mi Perfil
-                        </Link>
-                        
-                        <Link
-                          to="/my-reviews"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                        >
-                          <Star className="h-4 w-4 inline mr-2" />
-                          Mis Reseñas
-                        </Link>
-                        
-                        <hr className="my-1" />
-                        
-                        <button
-                          onClick={handleLogout}
-                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          <LogOut className="h-4 w-4 inline mr-2" />
-                          Cerrar Sesión
-                        </button>
+                    {showUserMenu && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '0.5rem',
+                        width: '200px',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '0.5rem',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                        border: '1px solid #e2e8f0',
+                        zIndex: 1000
+                      }}>
+                        <div style={{ padding: '0.75rem 0' }}>
+                          <Link
+                            to="/profile"
+                            onClick={() => setShowUserMenu(false)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0.75rem 1rem',
+                              color: '#2d3748',
+                              textDecoration: 'none',
+                              fontSize: '0.875rem',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#f7fafc';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                          >
+                            <User style={{ height: '16px', width: '16px', marginRight: '0.75rem' }} />
+                            Mi Perfil
+                          </Link>
+                          
+                          <hr style={{ margin: '0.5rem 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+                          
+                          <button
+                            onClick={handleLogout}
+                            style={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0.75rem 1rem',
+                              color: '#e53e3e',
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                              fontSize: '0.875rem',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s',
+                              textAlign: 'left'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#fed7d7';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                          >
+                            <LogOut style={{ height: '16px', width: '16px', marginRight: '0.75rem' }} />
+                            Cerrar Sesión
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
-                </div>
+                </>
               ) : (
-                <div className="flex items-center space-x-3">
-                  <Link to="/login" className="btn-outline">
+                /* Botones para usuarios no autenticados */
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <Link 
+                    to="/login" 
+                    style={{
+                      color: '#ffffff',
+                      border: '1px solid #a0aec0',
+                      padding: '0.75rem 1.25rem',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.9rem',
+                      fontWeight: '500',
+                      textDecoration: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#ffffff';
+                      e.currentTarget.style.color = '#2d3748';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = '#ffffff';
+                    }}
+                  >
                     Iniciar Sesión
                   </Link>
-                  <Link to="/register" className="btn-primary">
+                  <Link 
+                    to="/register" 
+                    style={{
+                      backgroundColor: '#68d391',
+                      color: '#1a202c',
+                      padding: '0.75rem 1.25rem',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      textDecoration: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#48bb78';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#68d391';
+                    }}
+                  >
                     Registrarse
                   </Link>
                 </div>
               )}
             </div>
-
-            {/* Mobile menu button */}
-            <button
-              className="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
           </div>
-
-          {/* Mobile Navigation */}
-          {isMenuOpen && (
-            <div className="md:hidden border-t border-gray-200 py-4 animate-slide-in">
-              <div className="flex flex-col space-y-3">
-                <Link
-                  to="/"
-                  className={`nav-link ${isActivePath('/') ? 'nav-link-active' : ''}`}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Inicio
-                </Link>
-                
-                <Link
-                  to="/products"
-                  className={`nav-link ${isActivePath('/products') ? 'nav-link-active' : ''}`}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Productos
-                </Link>
-
-                {currentUser ? (
-                  <>
-                    <Link
-                      to="/conversations"
-                      className={`nav-link ${isActivePath('/conversations') ? 'nav-link-active' : ''}`}
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <MessageCircle className="h-4 w-4 inline mr-2" />
-                      Mensajes
-                    </Link>
-                    
-                    <Link
-                      to="/my-products"
-                      className={`nav-link ${isActivePath('/my-products') ? 'nav-link-active' : ''}`}
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Mis Productos
-                    </Link>
-                    
-                    <Link
-                      to="/products/create"
-                      className={`nav-link ${isActivePath('/products/create') ? 'nav-link-active' : ''}`}
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <Plus className="h-4 w-4 inline mr-2" />
-                      Vender Producto
-                    </Link>
-                    
-                    <hr className="my-2" />
-                    
-                    <div className="px-3 py-2 text-sm text-gray-600">
-                      Conectado como: <span className="font-medium">{currentUser.username}</span>
-                    </div>
-                    
-                    <Link
-                      to="/profile"
-                      className="nav-link"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <User className="h-4 w-4 inline mr-2" />
-                      Mi Perfil
-                    </Link>
-                    
-                    <Link
-                      to="/my-reviews"
-                      className="nav-link"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <Star className="h-4 w-4 inline mr-2" />
-                      Mis Reseñas
-                    </Link>
-                    
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setIsMenuOpen(false);
-                      }}
-                      className="nav-link text-red-600 hover:text-red-700 text-left w-full"
-                    >
-                      <LogOut className="h-4 w-4 inline mr-2" />
-                      Cerrar Sesión
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <hr className="my-2" />
-                    <Link
-                      to="/login"
-                      className="nav-link"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Iniciar Sesión
-                    </Link>
-                    <Link
-                      to="/register"
-                      className="nav-link"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Registrarse
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </nav>
 
@@ -299,64 +539,103 @@ const Layout = () => {
         <Outlet />
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-auto">
+      {/* Footer mejorado */}
+      <footer style={{
+        background: 'linear-gradient(135deg, #2d3748 0%, #4a5568 100%)',
+        borderTop: '1px solid #4a5568',
+        marginTop: 'auto',
+        color: '#ffffff'
+      }}>
         <div className="container-custom py-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
             
-            {/* Company Info */}
-            <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center space-x-2 mb-4">
-                <ShoppingBag className="h-8 w-8 text-primary-600" />
-                <span className="text-xl font-bold text-gray-900">E-Commerce</span>
+            {/* Lado izquierdo - Logo y info principal */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ShoppingBag style={{ height: '24px', width: '24px', color: '#ffffff' }} />
+                <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#ffffff' }}>
+                  E-Commerce
+                </span>
+                <span style={{ 
+                  backgroundColor: 'rgba(255,255,255,0.1)', 
+                  padding: '0.125rem 0.5rem', 
+                  borderRadius: '1rem', 
+                  fontSize: '0.75rem',
+                  color: '#cbd5e0'
+                }}>
+                  v1.0
+                </span>
               </div>
-              <p className="text-gray-600 text-sm mb-4">
-                Tu plataforma de confianza para comprar y vender productos. 
-                Conectamos compradores y vendedores en un entorno seguro y fácil de usar.
+              
+              <p style={{ color: '#cbd5e0', fontSize: '0.875rem', margin: 0 }}>
+                Tu plataforma de confianza para comprar y vender productos
               </p>
-              <div className="text-sm text-gray-500">
-                © 2025 E-Commerce. Proyecto Educativo - Programación 3.
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.25rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#a0aec0' }}>
+                  © 2025 E-Commerce - Programación 3
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <span style={{ 
+                    width: '8px', 
+                    height: '8px', 
+                    backgroundColor: '#48bb78', 
+                    borderRadius: '50%' 
+                  }}></span>
+                  <span style={{ fontSize: '0.75rem', color: '#cbd5e0' }}>
+                    Todos los servicios operativos
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Quick Links */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
-                Enlaces Rápidos
-              </h3>
-              <div className="space-y-2">
-                <Link to="/" className="block text-sm text-gray-600 hover:text-primary-600 transition-colors">
-                  Inicio
-                </Link>
-                <Link to="/products" className="block text-sm text-gray-600 hover:text-primary-600 transition-colors">
+            {/* Lado derecho - Links y badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+              
+              {/* Links rápidos */}
+              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                <Link to="/products" style={{ 
+                  color: '#cbd5e0', 
+                  textDecoration: 'none', 
+                  fontSize: '0.875rem',
+                  transition: 'color 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#cbd5e0'}>
                   Productos
                 </Link>
                 {currentUser && (
-                  <Link to="/my-products" className="block text-sm text-gray-600 hover:text-primary-600 transition-colors">
+                  <Link to="/my-products" style={{ 
+                    color: '#cbd5e0', 
+                    textDecoration: 'none', 
+                    fontSize: '0.875rem',
+                    transition: 'color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#cbd5e0'}>
                     Mis Productos
                   </Link>
                 )}
-              </div>
-            </div>
-
-            {/* Support */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
-                Soporte
-              </h3>
-              <div className="space-y-2">
-                <a href="#" className="block text-sm text-gray-600 hover:text-primary-600 transition-colors">
-                  Centro de Ayuda
-                </a>
-                <a href="#" className="block text-sm text-gray-600 hover:text-primary-600 transition-colors">
-                  Términos de Servicio
-                </a>
-                <a href="#" className="block text-sm text-gray-600 hover:text-primary-600 transition-colors">
-                  Política de Privacidad
-                </a>
-                <a href="#" className="block text-sm text-gray-600 hover:text-primary-600 transition-colors">
-                  Contacto
-                </a>
+                <button
+                  onClick={() => alert('Centro de ayuda próximamente')}
+                  style={{ 
+                    background: 'none',
+                    border: 'none',
+                    color: '#cbd5e0', 
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#cbd5e0'}>
+                  Soporte
+                </button>
               </div>
             </div>
           </div>
