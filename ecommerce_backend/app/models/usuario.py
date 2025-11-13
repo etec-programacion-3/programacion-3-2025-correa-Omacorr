@@ -11,15 +11,19 @@ class Usuario(Base, TimestampMixin):
     password_hash = Column(String, nullable=False)
     nombre = Column(String, nullable=False)
     apellido = Column(String, nullable=False)
-    telefono = Column(String)
-    direccion = Column(String)
+    telefono = Column(String) 
+    direccion = Column(String) 
+    
+    ciudad = Column(String, nullable=True)
+    provincia = Column(String, nullable=True) 
+    codigo_postal = Column(String, nullable=True)
+    
     is_active = Column(Boolean, default=True)
     
-    # Relaciones
+    # Relaciones (las mismas que tienes)
     productos_vendidos = relationship("Producto", back_populates="vendedor")
     pedidos = relationship("Pedido", back_populates="usuario")
     calificaciones = relationship("CalificacionProducto", back_populates="usuario")
     conversaciones_iniciadas = relationship("Conversacion", foreign_keys="[Conversacion.usuario1_id]", back_populates="usuario1")
     conversaciones_recibidas = relationship("Conversacion", foreign_keys="[Conversacion.usuario2_id]", back_populates="usuario2")
     mensajes_enviados = relationship("Mensaje", back_populates="remitente")
-    

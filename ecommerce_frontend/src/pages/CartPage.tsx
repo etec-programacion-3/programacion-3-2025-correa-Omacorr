@@ -1,13 +1,9 @@
-import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
-import { api } from '../services/api';
 
 const CartPage = () => {
   const navigate = useNavigate();
-  const { items, totalItems, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { items, totalItems, totalPrice, updateQuantity, removeFromCart } = useCart();
 
   const handleUpdateQuantity = (productId: number, newQuantity: number) => {
     updateQuantity(productId, newQuantity);
@@ -16,47 +12,6 @@ const CartPage = () => {
   const handleRemoveItem = (productId: number) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este producto del carrito?')) {
       removeFromCart(productId);
-    }
-  };
-
-  const handleCheckout = async () => {
-    if (items.length === 0) {
-      alert('Tu carrito está vacío');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Preparar items para el backend
-      const orderItems = items.map(item => ({
-        producto_id: item.id,
-        cantidad: item.cantidad,
-        precio_unitario: item.precio
-      }));
-
-      console.log('Enviando pedido:', { items: orderItems });
-
-      // Crear el pedido
-      const response = await api.orders.create(orderItems);
-      
-      console.log('Pedido creado:', response);
-
-      // Limpiar carrito
-      clearCart();
-
-      // Mostrar mensaje de éxito
-      alert(`¡Pedido creado exitosamente! 🎉\nID del pedido: ${response.pedido_id}\nTotal: $${response.total.toLocaleString()}`);
-
-      // Redirigir a página de confirmación o productos
-      navigate('/products');
-
-    } catch (err: any) {
-      console.error('Error en checkout:', err);
-      setError(err.response?.data?.detail || 'Error al procesar el pedido. Intenta nuevamente.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -89,19 +44,6 @@ const CartPage = () => {
           {totalItems} {totalItems === 1 ? 'producto' : 'productos'} en tu carrito
         </p>
       </div>
-
-      {error && (
-        <div style={{
-          backgroundColor: '#fef2f2',
-          border: '1px solid #fecaca',
-          color: '#dc2626',
-          padding: '1rem',
-          borderRadius: '0.5rem',
-          marginBottom: '2rem'
-        }}>
-          {error}
-        </div>
-      )}
 
       <div style={{ 
         display: 'grid', 
@@ -279,8 +221,7 @@ const CartPage = () => {
           </div>
 
           <button
-            onClick={handleCheckout}
-            disabled={loading}
+            onClick={() => navigate('/checkout')}
             style={{
               width: '100%',
               backgroundColor: '#2563eb',
@@ -290,28 +231,18 @@ const CartPage = () => {
               border: 'none',
               fontSize: '1.1rem',
               fontWeight: '600',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1,
+              cursor: 'pointer',
               transition: 'all 0.2s',
               marginBottom: '1rem'
             }}
             onMouseEnter={(e) => {
-              if (!loading) {
-                e.currentTarget.style.backgroundColor = '#1d4ed8';
-              }
+              e.currentTarget.style.backgroundColor = '#1d4ed8';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = '#2563eb';
             }}
           >
-            {loading ? (
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <div className="spinner" style={{ width: '1rem', height: '1rem' }}></div>
-                Procesando...
-              </span>
-            ) : (
-              `💳 Proceder al Pago ($${totalPrice.toLocaleString()})`
-            )}
+            💳 Proceder al Checkout ($${totalPrice.toLocaleString()})
           </button>
 
           <button

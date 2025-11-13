@@ -130,7 +130,7 @@ def listar_mis_productos(
     productos = get_productos(
         db=db,
         vendedor_id=current_user.id,
-        activos_solo=False
+        activos_solo=True
     )
     return productos
 
