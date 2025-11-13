@@ -1,9 +1,7 @@
 from pydantic import BaseModel, validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
-from decimal import Decimal
 
-# Schema para crear producto
 class ProductoCreate(BaseModel):
     nombre: str
     descripcion: Optional[str] = None
@@ -30,7 +28,6 @@ class ProductoCreate(BaseModel):
             raise ValueError('El stock no puede ser negativo')
         return v
 
-# Schema para actualizar producto (todos los campos opcionales)
 class ProductoUpdate(BaseModel):
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
@@ -58,7 +55,22 @@ class ProductoUpdate(BaseModel):
             raise ValueError('El stock no puede ser negativo')
         return v
 
-# Schema para respuesta con información del vendedor
+class ProductoResponse(BaseModel):
+    id: int
+    nombre: str
+    descripcion: Optional[str]
+    precio: float
+    stock: int
+    categoria: Optional[str]
+    imagen_url: Optional[str]
+    vendedor_id: int
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
 class ProductoConVendedor(BaseModel):
     id: int
     nombre: str
@@ -77,24 +89,6 @@ class ProductoConVendedor(BaseModel):
     class Config:
         from_attributes = True
 
-# Schema básico de producto (respuesta estándar)
-class ProductoResponse(BaseModel):
-    id: int
-    nombre: str
-    descripcion: Optional[str]
-    precio: float
-    stock: int
-    categoria: Optional[str]
-    imagen_url: Optional[str]
-    vendedor_id: int
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-# Schema para lista de productos (con información del vendedor)
 class ProductoEnLista(BaseModel):
     id: int
     nombre: str
@@ -109,9 +103,8 @@ class ProductoEnLista(BaseModel):
     class Config:
         from_attributes = True
 
-# Schema para respuesta paginadaa
 class ProductosPaginados(BaseModel):
     total: int
     page: int
     page_size: int
-    productos: list[ProductoResponse]
+    productos: List[ProductoResponse]

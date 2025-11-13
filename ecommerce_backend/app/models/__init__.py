@@ -3,7 +3,7 @@ from .usuario import Usuario
 from .producto import Producto
 from .pedido import Pedido, ItemPedido
 from .mensaje import Conversacion, Mensaje
-from .clasificacion import CalificacionProducto
+from .calificacion import CalificacionProducto  # ← DESCOMENTAR
 
 __all__ = [
     "Base",
@@ -13,5 +13,5 @@ __all__ = [
     "ItemPedido",
     "Conversacion", 
     "Mensaje",
-    "CalificacionProducto"
+    "CalificacionProducto"  # ← DESCOMENTAR
 ]

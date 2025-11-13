@@ -5,10 +5,13 @@ from typing import Optional, List
 from app.models.producto import Producto
 from app.models.usuario import Usuario
 from app.schemas.producto import ProductoCreate, ProductoUpdate
+from sqlalchemy.orm import Session, joinedload 
+from sqlalchemy import and_, or_, desc
 
 def get_producto_by_id(db: Session, producto_id: int) -> Optional[Producto]:
     """Obtiene un producto por su ID"""
-    return db.query(Producto).filter(Producto.id == producto_id).first()
+    return db.query(Producto).options(joinedload(Producto.vendedor)).filter(Producto.id == producto_id).first()
+
 
 def get_productos(
     db: Session, 
@@ -21,7 +24,7 @@ def get_productos(
     """
     Obtiene una lista de productos con filtros opcionales
     """
-    query = db.query(Producto)
+    query = db.query(Producto).options(joinedload(Producto.vendedor))
     
     # Aplicar filtros
     if activos_solo:
@@ -63,7 +66,7 @@ def search_productos(db: Session, search_term: str, skip: int = 0, limit: int = 
     Busca productos por nombre o descripción
     """
     search_pattern = f"%{search_term}%"
-    return db.query(Producto).filter(
+    return db.query(Producto).options(joinedload(Producto.vendedor)).filter(
         and_(
             Producto.is_active == True,
             or_(

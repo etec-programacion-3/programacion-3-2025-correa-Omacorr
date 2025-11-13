@@ -1,4 +1,3 @@
-# app/api/api_v1/endpoints/productos.py
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
@@ -10,6 +9,12 @@ from app.schemas.producto import (
     ProductoResponse,
     ProductosPaginados
 )
+from app.schemas.calificacion import (  # ← AGREGAR ESTOS IMPORTS
+    CalificacionCreate,
+    CalificacionResponse,
+    CalificacionConUsuario
+)
+from app.crud.usuario import get_user_by_id
 from app.crud.producto import (
     get_producto_by_id,
     get_productos,
@@ -19,6 +24,12 @@ from app.crud.producto import (
     update_producto,
     delete_producto,
     is_producto_owner
+)
+from app.crud.calificacion import (  # ← AGREGAR ESTOS IMPORTS
+    create_calificacion,
+    get_calificaciones_producto,
+    get_promedio_calificacion,
+    get_calificacion_usuario_producto
 )
 from app.api.deps import get_current_active_user
 from app.models.usuario import Usuario
@@ -80,12 +91,33 @@ def listar_productos(
             activos_solo=True
         )
     
-    return ProductosPaginados(
-        total=total,
-        page=page,
-        page_size=page_size,
-        productos=productos
-    )
+    # Transformar productos para incluir información del vendedor
+    productos_transformados = []
+    for producto in productos:
+        vendedor = get_user_by_id(db, producto.vendedor_id)
+        producto_dict = {
+            "id": producto.id,
+            "nombre": producto.nombre,
+            "descripcion": producto.descripcion,
+            "precio": float(producto.precio),
+            "stock": producto.stock,
+            "categoria": producto.categoria,
+            "imagen_url": producto.imagen_url,
+            "vendedor_id": producto.vendedor_id,
+            "vendedor_username": producto.vendedor.username if producto.vendedor else None,
+            "vendedor_nombre": f"{producto.vendedor.nombre} {producto.vendedor.apellido}" if producto.vendedor else None,
+            "is_active": producto.is_active,
+            "created_at": producto.created_at,
+            "updated_at": producto.updated_at
+        }
+        productos_transformados.append(producto_dict)
+    
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "productos": productos_transformados
+    }
 
 @router.get("/mis-productos", response_model=List[ProductoResponse])
 def listar_mis_productos(
@@ -108,7 +140,7 @@ def obtener_producto(
     db: Session = Depends(get_db)
 ):
     """
-    Obtiene un producto específico por ID
+    Obtiene un producto específico por ID con información del vendedor
     """
     producto = get_producto_by_id(db, producto_id)
     
@@ -124,7 +156,24 @@ def obtener_producto(
             detail="Producto no disponible"
         )
     
-    return producto
+    # Agregar información del vendedor
+    vendedor = get_user_by_id(db, producto.vendedor_id)
+    
+    return {
+        "id": producto.id,
+        "nombre": producto.nombre,
+        "descripcion": producto.descripcion,
+        "precio": float(producto.precio),
+        "stock": producto.stock,
+        "categoria": producto.categoria,
+        "imagen_url": producto.imagen_url,
+        "vendedor_id": producto.vendedor_id,
+        "vendedor_username": vendedor.username if vendedor else None,
+        "vendedor_nombre_completo": f"{vendedor.nombre} {vendedor.apellido}" if vendedor else None,
+        "is_active": producto.is_active,
+        "created_at": producto.created_at,
+        "updated_at": producto.updated_at
+    }
 
 @router.put("/{producto_id}", response_model=ProductoResponse)
 def actualizar_producto(
@@ -182,3 +231,89 @@ def eliminar_producto(
         )
     
     return None
+
+# ← AGREGAR ESTOS NUEVOS ENDPOINTS DE CALIFICACIONES:
+
+@router.post("/{producto_id}/reviews", response_model=CalificacionResponse)
+def calificar_producto(
+    producto_id: int,
+    calificacion: CalificacionCreate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """Calificar un producto después de comprarlo"""
+    producto = get_producto_by_id(db, producto_id)
+    if not producto or not producto.is_active:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    if producto.vendedor_id == current_user.id:
+        raise HTTPException(status_code=400, detail="No puedes calificar tu propio producto")
+    
+    try:
+        nueva_calificacion = create_calificacion(
+            db=db,
+            producto_id=producto_id,
+            usuario_id=current_user.id,
+            calificacion=calificacion
+        )
+        return nueva_calificacion
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/{producto_id}/reviews")
+def obtener_calificaciones(
+    producto_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db)
+):
+    """Obtener todas las calificaciones de un producto"""
+    producto = get_producto_by_id(db, producto_id)
+    if not producto or not producto.is_active:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    calificaciones = get_calificaciones_producto(db, producto_id, skip, limit)
+    promedio = get_promedio_calificacion(db, producto_id)
+    
+    # Construir respuesta con información del usuario
+    calificaciones_con_usuario = []
+    for cal in calificaciones:
+        usuario = get_user_by_id(db, cal.usuario_id)
+        if usuario:
+            calificaciones_con_usuario.append({
+                "id": cal.id,
+                "producto_id": cal.producto_id,
+                "usuario_id": cal.usuario_id,
+                "usuario_username": usuario.username,
+                "usuario_nombre": f"{usuario.nombre} {usuario.apellido}",
+                "puntuacion": cal.puntuacion,
+                "comentario": cal.comentario,
+                "created_at": cal.created_at
+            })
+    
+    return {
+        "promedio": promedio,
+        "total": len(calificaciones),
+        "calificaciones": calificaciones_con_usuario
+    }
+
+@router.get("/{producto_id}/reviews/my-review")
+def obtener_mi_calificacion(
+    producto_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """Obtener la calificación del usuario actual para este producto"""
+    calificacion = get_calificacion_usuario_producto(db, current_user.id, producto_id)
+    
+    if not calificacion:
+        return {"tiene_calificacion": False}
+    
+    return {
+        "tiene_calificacion": True,
+        "calificacion": {
+            "puntuacion": calificacion.puntuacion,
+            "comentario": calificacion.comentario,
+            "created_at": calificacion.created_at
+        }
+    }

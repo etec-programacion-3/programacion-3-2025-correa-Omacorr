@@ -5,6 +5,7 @@ import traceback
 from .core.config import settings
 from .api.api_v1.api import api_router
 
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
