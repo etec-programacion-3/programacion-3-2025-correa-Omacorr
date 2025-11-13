@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models.pedido import Pedido, ItemPedido
 from app.models.producto import Producto
 from app.api.deps import get_current_user
+from app.models.usuario import Usuario 
 
 router = APIRouter()
 
@@ -23,7 +24,7 @@ class CrearPedidoRequest(BaseModel):
 @router.post("/orders/")
 async def crear_pedido(
     pedido_data: CrearPedidoRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -54,7 +55,7 @@ async def crear_pedido(
         
         # Crear pedido principal
         nuevo_pedido = Pedido(
-            usuario_id=current_user["id"],
+            usuario_id=current_user.id,
             total=total_pedido,
             estado="pendiente",
             direccion_envio="Dirección por defecto",
@@ -106,13 +107,13 @@ async def crear_pedido(
 
 @router.get("/orders/")
 async def obtener_pedidos(
-    current_user: dict = Depends(get_current_user),
+    current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Obtener pedidos del usuario
     """
-    pedidos = db.query(Pedido).filter(Pedido.usuario_id == current_user["id"]).all()
+    pedidos = db.query(Pedido).filter(Pedido.usuario_id == current_user.id).all()
     return [
         {
             "id": p.id,

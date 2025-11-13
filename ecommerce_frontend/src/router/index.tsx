@@ -11,6 +11,8 @@ import CartPage from '../pages/CartPage.tsx';
 import CreateProductPage from '../pages/CreateProductPage';
 import MyProductsPage from '../pages/MyProductPage.tsx';
 import EditProductPage from '../pages/EditProductPage.tsx';
+import UserProfilePage from '../pages/UserProfilePage.tsx';
+import CheckoutPage from '../pages/CheckOutPage.tsx';
 
 export const router = createBrowserRouter([
   {
@@ -60,6 +62,14 @@ export const router = createBrowserRouter([
       {
         path: "products/:id/edit",
         element: <EditProductPage />,
+      },
+      {
+        path: "/profile",
+        element: <UserProfilePage />,
+      },
+      {
+        path: "/checkout",
+        element: <CheckoutPage />,
       },
     ],
   },

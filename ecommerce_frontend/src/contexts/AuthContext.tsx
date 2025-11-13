@@ -1,13 +1,22 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { api, isAuthenticated } from '../services/api';
 
-// Tipos para el usuario
+// ⭐ INTERFAZ USER ACTUALIZADA para coincidir exactamente con api.ts
 export interface User {
   id: number;
   username: string;
   email: string;
-  full_name?: string;
-  fecha_creacion: string;
+  nombre: string;
+  apellido: string;
+  telefono?: string;
+  direccion?: string;
+  ciudad?: string;
+  provincia?: string;
+  codigo_postal?: string;
+  created_at: string;
+  updated_at: string;
+  is_active: boolean;
+  full_name?: string; // ← OPCIONAL para coincidir con api.ts
 }
 
 interface AuthState {
@@ -22,7 +31,8 @@ type AuthAction =
   | { type: 'AUTH_SUCCESS'; payload: User }
   | { type: 'AUTH_ERROR'; payload: string }
   | { type: 'AUTH_LOGOUT' }
-  | { type: 'AUTH_CLEAR_ERROR' };
+  | { type: 'AUTH_CLEAR_ERROR' }
+  | { type: 'UPDATE_USER'; payload: User };
 
 const initialState: AuthState = {
   user: null,
@@ -43,6 +53,8 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return { ...state, user: null, isAuthenticated: false, isLoading: false, error: null };
     case 'AUTH_CLEAR_ERROR':
       return { ...state, error: null };
+    case 'UPDATE_USER':
+      return { ...state, user: action.payload, error: null };
     default:
       return state;
   }
@@ -53,6 +65,7 @@ interface AuthContextType extends AuthState {
   register: (userData: any) => Promise<void>;
   logout: () => void;
   clearError: () => void;
+  updateUser: (userData: any) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -84,6 +97,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await login(userData.username, userData.password);
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Error al registrarse';
+      dispatch({ type: 'AUTH_ERROR', payload: errorMessage });
+      throw error;
+    }
+  };
+
+  // Función para actualizar perfil del usuario
+  const updateUser = async (userData: any): Promise<void> => {
+    try {
+      const updatedUser = await api.users.updateProfile(userData);
+      dispatch({ type: 'UPDATE_USER', payload: updatedUser });
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.detail || 'Error al actualizar perfil';
       dispatch({ type: 'AUTH_ERROR', payload: errorMessage });
       throw error;
     }
@@ -121,6 +146,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     clearError,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
