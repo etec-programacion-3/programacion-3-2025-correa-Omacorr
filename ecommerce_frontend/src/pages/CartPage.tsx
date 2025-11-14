@@ -242,7 +242,7 @@ const CartPage = () => {
               e.currentTarget.style.backgroundColor = '#2563eb';
             }}
           >
-            💳 Proceder al Checkout ($${totalPrice.toLocaleString()})
+            💳 Proceder al Checkout (${totalPrice.toLocaleString()})
           </button>
 
           <button

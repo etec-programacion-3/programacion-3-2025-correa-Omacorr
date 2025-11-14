@@ -219,3 +219,39 @@ Content:
 Status: ✅ Email enviado (simulado)
 ********************************************************************************
 
+
+********************************************************************************
+📧 EMAIL NOTIFICATION
+********************************************************************************
+Timestamp: 2025-11-13 23:10:34
+To: maria@test.com
+Subject: Nuevo mensaje de juan
+Content:
+  juan te ha enviado un mensaje: mandando mensaje desde firefox en juan hasta brave en maria
+Status: ✅ Email enviado (simulado)
+********************************************************************************
+
+
+********************************************************************************
+📧 EMAIL NOTIFICATION
+********************************************************************************
+Timestamp: 2025-11-13 23:11:14
+To: juan@test.com
+Subject: Nuevo mensaje de maria
+Content:
+  maria te ha enviado un mensaje: mandando mensaje desde brave en maria hasta firefox en juan
+Status: ✅ Email enviado (simulado)
+********************************************************************************
+
+
+********************************************************************************
+📧 EMAIL NOTIFICATION
+********************************************************************************
+Timestamp: 2025-11-13 23:11:21
+To: maria@test.com
+Subject: Nuevo mensaje de juan
+Content:
+  juan te ha enviado un mensaje: lalalala
+Status: ✅ Email enviado (simulado)
+********************************************************************************
+

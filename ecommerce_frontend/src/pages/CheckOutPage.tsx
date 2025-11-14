@@ -203,7 +203,7 @@ const CheckoutPage = () => {
       clearCart();
       
       alert(`¡Pedido creado exitosamente! 🎉\nID: ${response.pedido_id}\nSe enviará a: ${shippingData.full_name}\n${fullAddress}`);
-      navigate('/profile?tab=orders');
+      navigate('/');
       
     } catch (err: any) {
       console.error('Error completo:', err);
