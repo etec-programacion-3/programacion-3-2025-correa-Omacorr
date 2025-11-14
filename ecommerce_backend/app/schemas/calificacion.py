@@ -31,3 +31,8 @@ class CalificacionConUsuario(BaseModel):
 class CalificacionUpdate(BaseModel):
     puntuacion: Optional[int] = Field(None, ge=1, le=5)
     comentario: Optional[str] = Field(None, max_length=500)
+
+class CalificacionesStats(BaseModel):
+    promedio: float = Field(..., description="Promedio de calificaciones")
+    total: int = Field(..., description="Total de calificaciones")
+    distribucion: dict = Field(..., description="Distribución de estrellas (1-5)")

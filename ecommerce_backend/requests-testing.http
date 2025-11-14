@@ -4,7 +4,39 @@
 
 ### Variables
 @baseUrl = http://127.0.0.1:8000/api/v1
-@token = Bearer YOUR_TOKEN_AQUI
+@token = Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJvbWFyX3Rlc3QiLCJleHAiOjE3NjMxMjk3OTh9.7dTJ0qR4wpJSyN4QsLrvNQbKES-MdUnXVFCGthnJvaY
+
+### ⚠️ GUÍA RÁPIDA DE USO:
+###
+### PASO 1: Asegúrate de que el backend esté corriendo
+###   cd ecommerce_backend
+###   source venv/bin/activate  (o venv\Scripts\activate en Windows)
+###   uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+###
+### PASO 2: Crea un usuario
+###   - Ejecuta el REGISTRO (sección 1.1 abajo)
+###   - Deberías recibir un token en la respuesta
+###
+### PASO 3: Obtén tu token de acceso
+###   - Ejecuta el LOGIN (sección 1.2.1 es más simple que 1.2)
+###   - Copia SOLO el valor de "access_token" de la respuesta
+###   - Ejemplo: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOi...
+###
+### PASO 4: Configura el token en este archivo
+###   - Ve a la línea 7 arriba
+###   - Reemplaza el token actual con tu nuevo token
+###   - Debe quedar: @token = Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+###   - IMPORTANTE: Debe decir "Bearer" seguido de un ESPACIO y luego el token
+###   - Guarda el archivo (Ctrl+S)
+###
+### PASO 5: Usa los endpoints protegidos
+###   - Ahora puedes ejecutar cualquier endpoint que tenga "Authorization: {{token}}"
+###   - Los tokens expiran en 30 minutos, si ves error 401, repite desde PASO 3
+###
+### 💡 TIPS:
+###   - Usa /auth/login-simple (1.2.1) en lugar de /auth/login (es más simple)
+###   - El login requiere tu EMAIL (no el username) en el campo "username"
+###   - Si ves error 404 "Usuario no encontrado", ejecuta primero el REGISTRO (1.1)
 
 ### ===========================================
 ### 1. AUTENTICACIÓN
@@ -24,11 +56,20 @@ Content-Type: application/json
   "telefono": "+54 261 123-4567"
 }
 
-### 1.2 Login de usuario
+### 1.2 Login de usuario (OAuth2 - usar EMAIL en campo username)
 POST {{baseUrl}}/auth/login
 Content-Type: application/x-www-form-urlencoded
 
-username=omar_test&password=test123456
+username=omar@test.com&password=test123456
+
+### 1.2.1 Login alternativo (JSON - más simple)
+POST {{baseUrl}}/auth/login-simple
+Content-Type: application/json
+
+{
+  "email": "omar@test.com",
+  "password": "test123456"
+}
 
 ### 1.3 Obtener perfil actual (endpoint legacy)
 GET {{baseUrl}}/usuarios/me/profile
@@ -38,11 +79,11 @@ Authorization: {{token}}
 ### 2. GESTIÓN DE USUARIOS
 ### ===========================================
 
-### 2.1 Obtener mi perfil completo
+### 2.1 Obtener mi perfil completo (requiere token)
 GET {{baseUrl}}/usuarios/me
 Authorization: {{token}}
 
-### 2.2 Actualizar mi perfil
+### 2.2 Actualizar mi perfil (requiere token)
 PUT {{baseUrl}}/usuarios/me
 Authorization: {{token}}
 Content-Type: application/json
@@ -57,7 +98,7 @@ Content-Type: application/json
   "codigo_postal": "5500"
 }
 
-### 2.3 Obtener usuario por username
+### 2.3 Obtener usuario público por username (no requiere token)
 GET {{baseUrl}}/usuarios/omar_test
 
 ### ===========================================
@@ -166,10 +207,6 @@ Content-Type: application/json
 
 ### 5.2 Ver mis pedidos
 GET {{baseUrl}}/orders/
-Authorization: {{token}}
-
-### 5.3 Ver pedido específico
-GET {{baseUrl}}/orders/1
 Authorization: {{token}}
 
 ### ===========================================
@@ -304,12 +341,42 @@ Content-Type: application/json
 ### NOTAS IMPORTANTES
 ### ===========================================
 
-# 1. Ejecutar estos requests en orden para mejor testing
-# 2. Reemplazar YOUR_TOKEN_AQUI con el token del login
-# 3. Asegurarse que el backend esté corriendo en puerto 8000
-# 4. Algunos endpoints requieren datos previos (ej: tener productos para hacer pedidos)
-# 5. Los IDs deben corresponder a registros existentes en tu BD
-# 6. Para testing completo, crear varios usuarios y productos
+# 1. ANTES DE EMPEZAR:
+#    - Asegúrate que el backend esté corriendo en puerto 8000
+#    - Verifica que la base de datos esté creada (python -c "from app.database import create_tables; create_tables()")
+
+# 2. FLUJO RECOMENDADO:
+#    a. Registrar usuario (1.1) - guarda el EMAIL que usaste
+#    b. Hacer login (1.2 o 1.2.1) - IMPORTANTE: usar el EMAIL, no el username
+#    c. COPIAR el access_token de la respuesta
+#    d. Reemplazar YOUR_TOKEN_AQUI en línea 7 con: Bearer tu_token_copiado
+#    e. Ahora puedes usar todos los endpoints protegidos
+#
+# IMPORTANTE SOBRE LOGIN:
+#    - El endpoint /auth/login (1.2) usa OAuth2 y requiere el EMAIL en el campo "username"
+#    - El endpoint /auth/login-simple (1.2.1) es más intuitivo y usa JSON con el campo "email"
+#    - Ambos funcionan igual, usa el que prefieras
+
+# 3. TIPS:
+#    - Ejecutar requests en orden para mejor testing
+#    - Algunos endpoints requieren datos previos (ej: crear productos antes de hacer pedidos)
+#    - Los IDs deben corresponder a registros existentes en tu BD
+#    - Para testing completo, crear varios usuarios y productos
+
+# 4. ENDPOINTS QUE NO REQUIEREN TOKEN:
+#    - POST /auth/register
+#    - POST /auth/login
+#    - GET /products/
+#    - GET /products/{id}
+#    - GET /products/{id}/reviews
+#    - GET /usuarios/{username}
+
+# 5. ENDPOINTS QUE REQUIEREN TOKEN:
+#    - Todos los endpoints bajo /usuarios/me
+#    - POST/PUT/DELETE de /products/
+#    - Todo el sistema de pedidos (/orders/)
+#    - Todo el sistema de mensajería (/conversations/)
+#    - Crear calificaciones
 
 ### ===========================================
 ### COMANDOS DE BACKEND

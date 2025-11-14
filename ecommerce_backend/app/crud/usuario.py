@@ -54,7 +54,10 @@ def create_user(db: Session, user: UsuarioCreate) -> Usuario:
         nombre=user.nombre,
         apellido=user.apellido,
         telefono=user.telefono,
-        direccion=user.direccion
+        direccion=user.direccion,
+        ciudad=user.ciudad,
+        provincia=user.provincia,
+        codigo_postal=user.codigo_postal
     )
     
     # Guardar en la base de datos
