@@ -1,534 +1,491 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import ProductCard from '../components/ProductCard';
 import { CATEGORIAS } from '../constants';
 
 interface Product {
   id: number;
   nombre: string;
-  descripcion: string;
   precio: number;
-  stock: number;
-  categoria: string;
+  vendedor_nombre: string;
+  fecha_creacion: string;
+  puntuacion_promedio?: number;
+  total_calificaciones?: number;
   imagen_url?: string;
-  vendedor_id: number;
-  vendedor_username?: string;
-  vendedor_nombre?: string;
-  created_at: string;
+  categoria?: string;
+  stock?: number;
 }
 
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeSearchTerm, setActiveSearchTerm] = useState(''); // Solo este se usa para buscar
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [searchParams] = useSearchParams();
+  const [sortBy, setSortBy] = useState('fecha_desc');
+  const [error, setError] = useState<string | null>(null);
+  
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // Obtener categoría de la URL si viene de HomePage
+  // Leer parámetros de URL al cargar
   useEffect(() => {
-    const categoryFromUrl = searchParams.get('category');
-    if (categoryFromUrl) {
-      setSelectedCategory(categoryFromUrl);
-    }
-  }, [searchParams]);
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get('search') || ''; // ← CAMBIO: search en lugar de buscar
+    const categoryParam = params.get('categoria') || '';
+    const sortParam = params.get('orden') || 'fecha_desc';
+    
+    console.log('📍 URL params:', {
+      search: searchParam,
+      category: categoryParam, 
+      sort: sortParam,
+      fullURL: location.search
+    });
+    
+    setSearchTerm(searchParam);
+    setSelectedCategory(categoryParam);
+    setSortBy(sortParam);
+  }, [location.search]);
 
-  // Cargar productos cuando cambien los filtros activos
+  // Cargar productos - SOLO cuando cambian categoría o sort (no searchTerm)
   useEffect(() => {
-    const loadProducts = async () => {
+    const fetchProducts = async () => {
       try {
         setLoading(true);
+        setError(null);
         
-        // Crear parámetros de búsqueda
-        const params: any = {};
-        if (activeSearchTerm.trim()) {
-          params.search = activeSearchTerm.trim(); // ← CAMBIO: buscar → search
+        const params: any = {
+          skip: 0,
+          limit: 50
+        };
+        
+        console.log('🔄 Filter states:', { searchTerm, selectedCategory, sortBy });
+        
+        // Solo agregar search si viene de URL o submit del formulario
+        const urlParams = new URLSearchParams(location.search);
+        const urlSearch = urlParams.get('search') || '';
+        
+        if (urlSearch.trim()) {
+          params.search = urlSearch.trim();
+          console.log('🔍 Adding search param from URL:', params.search);
         }
+        
         if (selectedCategory) {
           params.categoria = selectedCategory;
+          console.log('🏷️ Adding category param:', params.categoria);
         }
-
-        console.log('Parámetros de búsqueda:', params);
         
-        const data = await api.products.getAll(params);
-        console.log('Datos del backend:', data);
+        console.log('📡 Final API params:', params);
         
-        // Manejar diferentes estructuras de respuesta
-        if (Array.isArray(data)) {
-          setProducts(data);
-        } else if (data && data.productos && Array.isArray(data.productos)) {
-          setProducts(data.productos);
-        } else if (data && data.data && Array.isArray(data.data)) {
-          setProducts(data.data);
-        } else {
-          console.error('Estructura de datos inesperada:', data);
-          setProducts([]);
+        const response = await api.products.getAll(params);
+        
+        console.log('📡 Raw API response:', response);
+        
+        // Extraer el array de productos de la respuesta (productos en español PRIMERO)
+        const productsArray = response.productos || response.items || response.products || response.data || [];
+        
+        console.log('✅ Products found:', productsArray.length);
+        
+        // Ordenar productos según sortBy
+        let sortedProducts = [...productsArray];
+        switch (sortBy) {
+          case 'precio_asc':
+            sortedProducts.sort((a, b) => a.precio - b.precio);
+            break;
+          case 'precio_desc':
+            sortedProducts.sort((a, b) => b.precio - a.precio);
+            break;
+          case 'nombre_asc':
+            sortedProducts.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            break;
+          case 'fecha_desc':
+          default:
+            sortedProducts.sort((a, b) => new Date(b.fecha_creacion).getTime() - new Date(a.fecha_creacion).getTime());
+            break;
         }
-      } catch (error) {
-        console.error('Error cargando productos:', error);
-        setProducts([]);
+        
+        setProducts(sortedProducts);
+      } catch (err) {
+        console.error('Error loading products:', err);
+        setError('Error al cargar los productos');
       } finally {
         setLoading(false);
       }
     };
 
-    loadProducts();
-  }, [activeSearchTerm, selectedCategory]);
+    fetchProducts();
+  }, [selectedCategory, sortBy, location.search]); // ← CAMBIO: Removido searchTerm
 
-  // Función para manejar la búsqueda con Enter
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setActiveSearchTerm(searchTerm);
+  // Actualizar URL cuando cambian los filtros
+  const updateURL = (newSearch?: string, newCategory?: string, newSort?: string) => {
+    const params = new URLSearchParams();
+    
+    const search = newSearch !== undefined ? newSearch : searchTerm;
+    const category = newCategory !== undefined ? newCategory : selectedCategory;
+    const sort = newSort !== undefined ? newSort : sortBy;
+    
+    if (search.trim()) params.set('search', search); // ← CAMBIO: search en lugar de buscar
+    if (category) params.set('categoria', category);
+    if (sort !== 'fecha_desc') params.set('orden', sort);
+    
+    const queryString = params.toString();
+    navigate(`/products${queryString ? `?${queryString}` : ''}`, { replace: true });
   };
 
-  // Función para manejar Enter en el input
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      setActiveSearchTerm(searchTerm);
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('🔍 Search submitted with term:', searchTerm);
+    updateURL(searchTerm); // Actualizar URL con el término actual
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    updateURL(undefined, category);
+  };
+
+  const handleSortChange = (sort: string) => {
+    setSortBy(sort);
+    updateURL(undefined, undefined, sort);
+  };
+
+  // Función para limpiar filtros
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('');
+    setSortBy('fecha_desc');
+    navigate('/products', { replace: true });
+  };
+
+  // Función para remover filtro específico
+  const removeFilter = (filterType: 'search' | 'category') => {
+    if (filterType === 'search') {
+      setSearchTerm('');
+      updateURL('');
+    } else if (filterType === 'category') {
+      setSelectedCategory('');
+      updateURL(undefined, '');
     }
   };
 
-  const clearFilters = () => {
-    setSearchTerm('');
-    setActiveSearchTerm('');
-    setSelectedCategory('');
-  };
-
-  if (loading) {
-    return (
-      <div className="container-custom py-8">
-        <div className="text-center">
-          <div className="spinner"></div>
-          <p style={{ marginTop: '1rem', color: '#6b7280' }}>Cargando productos...</p>
-        </div>
-      </div>
-    );
-  }
+  // Comprobar si hay filtros activos
+  const hasActiveFilters = searchTerm.trim() || selectedCategory || sortBy !== 'fecha_desc';
 
   return (
-    <div className="container-custom py-8 animate-fade-in">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Productos</h1>
-        <p className="text-gray-600">Descubre increíbles productos de nuestra comunidad</p>
-      </div>
-
-      {/* Filtros */}
-      <form onSubmit={handleSearchSubmit}>
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '0.75rem',
-          padding: '1.5rem',
-          marginBottom: '2rem',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-          border: '1px solid #e2e8f0'
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '1rem', alignItems: 'end' }}>
-            <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '0.5rem', 
-                fontWeight: '500',
-                color: '#2d3748',
-                fontSize: '0.875rem'
+    <div className="container-custom py-8">
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Productos</h1>
+          
+          {/* Filtros aplicados */}
+          {hasActiveFilters && (
+            <div style={{
+              backgroundColor: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              borderRadius: '0.5rem',
+              padding: '1rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem'
               }}>
-                🔍 Buscar productos (presiona Enter para buscar)
-              </label>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
+                }}>
+                  <span style={{
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: '#1e40af'
+                  }}>
+                    Filtros aplicados:
+                  </span>
+                  
+                  {/* Filtro de búsqueda */}
+                  {searchTerm.trim() && (
+                    <span style={{
+                      backgroundColor: '#2563eb',
+                      color: 'white',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '1rem',
+                      fontSize: '0.75rem',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      🔍 "{searchTerm}"
+                      <button
+                        onClick={() => removeFilter('search')}
+                        style={{
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          color: 'white',
+                          cursor: 'pointer',
+                          padding: '0',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  
+                  {/* Filtro de categoría */}
+                  {selectedCategory && (
+                    <span style={{
+                      backgroundColor: '#10b981',
+                      color: 'white',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '1rem',
+                      fontSize: '0.75rem',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      🏷️ {selectedCategory}
+                      <button
+                        onClick={() => removeFilter('category')}
+                        style={{
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          color: 'white',
+                          cursor: 'pointer',
+                          padding: '0',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  
+                  {/* Filtro de orden */}
+                  {sortBy !== 'fecha_desc' && (
+                    <span style={{
+                      backgroundColor: '#f59e0b',
+                      color: 'white',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '1rem',
+                      fontSize: '0.75rem',
+                      fontWeight: '500'
+                    }}>
+                      📊 {sortBy === 'precio_asc' ? 'Menor precio' : 
+                           sortBy === 'precio_desc' ? 'Mayor precio' : 
+                           'Alfabético'}
+                    </span>
+                  )}
+                </div>
+                
+                {/* Botón limpiar todo */}
+                <button
+                  onClick={clearFilters}
+                  style={{
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
+                >
+                  🗑️ Limpiar filtros
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Controles de filtrado */}
+        <div className="card mb-6">
+          {/* Búsqueda */}
+          <form onSubmit={handleSearch} style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '1rem' }}>
               <input
                 type="text"
-                placeholder="Buscar productos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSearch(e as any);
+                  }
+                }}
+                placeholder="Buscar productos..."
                 style={{
-                  width: '100%',
-                  padding: '0.875rem',
-                  border: '2px solid #e2e8f0',
-                  borderRadius: '0.5rem',
-                  fontSize: '1rem',
-                  transition: 'border-color 0.2s',
-                  outline: 'none'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#2d3748';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#e2e8f0';
+                  flex: 1,
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem',
+                  fontSize: '1rem'
                 }}
               />
+              <button 
+                type="submit"
+                className="btn-primary"
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                🔍 Buscar
+              </button>
             </div>
-            
+          </form>
+
+          {/* Filtros */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: '1rem' 
+          }}>
+            {/* Categoría */}
             <div>
               <label style={{ 
                 display: 'block', 
                 marginBottom: '0.5rem', 
                 fontWeight: '500',
-                color: '#2d3748',
-                fontSize: '0.875rem'
+                color: '#374151'
               }}>
-                📂 Categoría
+                Categoría
               </label>
               <select
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={(e) => handleCategoryChange(e.target.value)}
                 style={{
-                  padding: '0.875rem',
-                  border: '2px solid #e2e8f0',
-                  borderRadius: '0.5rem',
-                  fontSize: '1rem',
-                  minWidth: '150px',
-                  outline: 'none',
-                  backgroundColor: '#ffffff'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#2d3748';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#e2e8f0';
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  backgroundColor: 'white'
                 }}
               >
-                <option value="">Todas</option>
+                <option value="">Todas las categorías</option>
                 {CATEGORIAS.map(categoria => (
-                  <option key={categoria} value={categoria}>{categoria}</option>
+                  <option key={categoria} value={categoria}>
+                    {categoria}
+                  </option>
                 ))}
               </select>
             </div>
 
+            {/* Ordenar */}
             <div>
-              <button
-                type="submit"
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '0.5rem', 
+                fontWeight: '500',
+                color: '#374151'
+              }}>
+                Ordenar por
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => handleSortChange(e.target.value)}
                 style={{
-                  backgroundColor: '#2d3748',
-                  color: '#ffffff',
-                  padding: '0.875rem 1.5rem',
-                  borderRadius: '0.5rem',
-                  border: 'none',
-                  fontSize: '1rem',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s',
-                  fontWeight: '500'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1a202c';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#2d3748';
-                }}
-              >
-                Buscar
-              </button>
-            </div>
-          </div>
-          
-          {/* Botón limpiar filtros */}
-          {(activeSearchTerm || selectedCategory) && (
-            <div style={{ marginTop: '1rem' }}>
-              <button 
-                type="button"
-                onClick={clearFilters}
-                style={{
-                  backgroundColor: '#f7fafc',
-                  border: '1px solid #e2e8f0',
-                  color: '#2d3748',
-                  padding: '0.5rem 1rem',
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
                   borderRadius: '0.375rem',
                   fontSize: '0.875rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#e2e8f0';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f7fafc';
+                  backgroundColor: 'white'
                 }}
               >
-                Limpiar filtros
-              </button>
+                <option value="fecha_desc">Más recientes</option>
+                <option value="precio_asc">Menor precio</option>
+                <option value="precio_desc">Mayor precio</option>
+                <option value="nombre_asc">Alfabético (A-Z)</option>
+              </select>
             </div>
-          )}
-        </div>
-      </form>
-
-      {/* Resumen */}
-      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-        <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-          {products.length === 0 ? 'No se encontraron productos' :
-           products.length === 1 ? 'Mostrando 1 producto' : 
-           `Mostrando ${products.length} productos`}
-          {(activeSearchTerm || selectedCategory) && (
-            <span style={{ color: '#2d3748', fontWeight: '500' }}>
-              {activeSearchTerm && ` para "${activeSearchTerm}"`}
-              {selectedCategory && ` en ${selectedCategory}`}
-            </span>
-          )}
-        </p>
-      </div>
-
-      {products.length === 0 ? (
-        <div className="text-center py-16">
-          <div style={{
-            maxWidth: '400px',
-            margin: '0 auto',
-            backgroundColor: '#f9fafb',
-            padding: '2rem',
-            borderRadius: '0.75rem',
-            border: '1px solid #e2e8f0'
-          }}>
-            <div style={{ 
-              width: '4rem', 
-              height: '4rem', 
-              backgroundColor: '#dbeafe', 
-              borderRadius: '0.5rem', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              margin: '0 auto 1rem' 
-            }}>
-              <span style={{ fontSize: '2rem' }}>🔍</span>
-            </div>
-            <h3 style={{
-              fontSize: '1.125rem',
-              fontWeight: '600',
-              color: '#2d3748',
-              marginBottom: '0.5rem'
-            }}>
-              No hay productos
-            </h3>
-            <p style={{
-              color: '#6b7280',
-              marginBottom: '1.5rem',
-              fontSize: '0.875rem'
-            }}>
-              {activeSearchTerm || selectedCategory 
-                ? 'No se encontraron productos que coincidan con tu búsqueda' 
-                : 'No hay productos disponibles en este momento'
-              }
-            </p>
-            <button 
-              onClick={clearFilters}
-              style={{
-                backgroundColor: '#2d3748',
-                color: '#ffffff',
-                padding: '0.75rem 1.5rem',
-                borderRadius: '0.5rem',
-                border: 'none',
-                fontSize: '1rem',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#1a202c';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#2d3748';
-              }}
-            >
-              Ver todos los productos
-            </button>
           </div>
         </div>
-      ) : (
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-          gap: '1.5rem' 
-        }}>
-          {products.map((product) => (
-            <Link
-              key={product.id}
-              to={`/products/${product.id}`}
-              style={{ textDecoration: 'none', color: 'inherit' }}
-            >
-              <div style={{ 
-                backgroundColor: '#ffffff',
-                borderRadius: '0.75rem',
-                overflow: 'hidden',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'all 0.3s',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
-              }}>
-                {/* Imagen del producto */}
-                <div style={{
-                  width: '100%',
-                  height: '200px',
-                  backgroundColor: '#f7fafc',
-                  overflow: 'hidden',
-                  position: 'relative',
-                  flexShrink: 0
-                }}>
-                  {product.imagen_url ? (
-                    <img 
-                      src={product.imagen_url} 
-                      alt={product.nombre}
-                      style={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        objectFit: 'cover',
-                        transition: 'transform 0.3s ease'
-                      }}
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent) {
-                          parent.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #f7fafc 0%, #e2e8f0 100%);"><span style="font-size: 3rem; color: #9ca3af;">📦</span></div>';
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      height: '100%',
-                      background: 'linear-gradient(135deg, #f7fafc 0%, #e2e8f0 100%)'
-                    }}>
-                      <span style={{ fontSize: '3rem', color: '#9ca3af' }}>📦</span>
-                    </div>
-                  )}
 
-                  {/* Badge de stock */}
-                  {product.stock <= 5 && product.stock > 0 && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '0.5rem',
-                      left: '0.5rem',
-                      backgroundColor: '#f59e0b',
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '500'
-                    }}>
-                      ¡Últimos {product.stock}!
-                    </div>
-                  )}
+        {/* Resultados */}
+        {error ? (
+          <div style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#dc2626',
+            padding: '1rem',
+            borderRadius: '0.5rem',
+            textAlign: 'center'
+          }}>
+            {error}
+          </div>
+        ) : loading ? (
+          <div className="text-center py-16">
+            <div className="spinner"></div>
+            <p style={{ marginTop: '1rem' }}>Cargando productos...</p>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-16">
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🔍</div>
+            <h2 className="text-xl font-semibold mb-2">No se encontraron productos</h2>
+            <p className="text-gray-600 mb-4">
+              {hasActiveFilters 
+                ? 'Intenta con otros filtros o términos de búsqueda'
+                : 'Aún no hay productos disponibles'}
+            </p>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="btn-primary"
+              >
+                Ver todos los productos
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Contador de resultados */}
+            <div style={{ 
+              marginBottom: '1.5rem',
+              padding: '0.75rem 1rem',
+              backgroundColor: '#f8fafc',
+              borderRadius: '0.375rem',
+              fontSize: '0.875rem',
+              color: '#64748b'
+            }}>
+              {products.length === 1 
+                ? 'Se encontró 1 producto' 
+                : `Se encontraron ${products.length} productos`}
+              {hasActiveFilters && ' con los filtros aplicados'}
+            </div>
 
-                  {product.stock === 0 && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '0.5rem',
-                      left: '0.5rem',
-                      backgroundColor: '#dc2626',
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '500'
-                    }}>
-                      Sin stock
-                    </div>
-                  )}
-                </div>
+            {/* Grid de productos */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: '1.5rem'
+            }}>
+              {products.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </>
+        )}
 
-                {/* Contenido del producto */}
-                <div style={{ 
-                  padding: '1.25rem',
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column'
-                }}>
-                  {/* Categoría */}
-                  {product.categoria && (
-                    <div style={{ marginBottom: '0.5rem' }}>
-                      <span style={{
-                        backgroundColor: '#e2e8f0',
-                        color: '#2d3748',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '0.25rem',
-                        fontSize: '0.75rem',
-                        fontWeight: '500'
-                      }}>
-                        {product.categoria}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Título */}
-                  <h3 style={{
-                    fontSize: '1.125rem',
-                    fontWeight: 'bold',
-                    marginBottom: '0.5rem',
-                    color: '#2d3748',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    {product.nombre}
-                  </h3>
-
-                  {/* Descripción */}
-                  <p style={{
-                    color: '#6b7280',
-                    fontSize: '0.875rem',
-                    marginBottom: '0.75rem',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    minHeight: '2.5rem',
-                    flex: 1,
-                    lineHeight: '1.4'
-                  }}>
-                    {product.descripcion || 'Sin descripción disponible'}
-                  </p>
-
-                  {/* Precio */}
-                  <div style={{ marginTop: 'auto' }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      marginBottom: '0.75rem'
-                    }}>
-                      <p style={{ 
-                        color: '#2d3748', 
-                        fontWeight: 'bold', 
-                        fontSize: '1.25rem',
-                        margin: 0 
-                      }}>
-                        ${product.precio.toLocaleString()}
-                      </p>
-                      <p style={{ 
-                        color: '#6b7280', 
-                        fontSize: '0.875rem',
-                        margin: 0 
-                      }}>
-                        Stock: {product.stock}
-                      </p>
-                    </div>
-
-                    {/* Vendedor */}
-                    <div style={{ 
-                      fontSize: '0.875rem', 
-                      color: '#6b7280',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem'
-                    }}>
-                      <span>👤</span>
-                      <span>
-                        {product.vendedor_nombre || product.vendedor_username || `Usuario ${product.vendedor_id}`}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
+        {/* Botón para agregar producto */}
+        <div style={{ marginTop: '3rem', textAlign: 'center' }}>
+          <Link 
+            to="/create-product" 
+            className="btn-primary"
+            style={{ display: 'inline-block' }}
+          >
+            + Publicar Producto
+          </Link>
         </div>
-      )}
+      </div>
     </div>
   );
 };

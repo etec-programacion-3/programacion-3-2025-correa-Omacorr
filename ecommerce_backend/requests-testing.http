@@ -1,0 +1,324 @@
+### ===========================================
+### ECOMMERCE BACKEND - API TESTING
+### ===========================================
+
+### Variables
+@baseUrl = http://127.0.0.1:8000/api/v1
+@token = Bearer YOUR_TOKEN_AQUI
+
+### ===========================================
+### 1. AUTENTICACIÓN
+### ===========================================
+
+### 1.1 Registro de nuevo usuario
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "omar_test",
+  "email": "omar@test.com",
+  "password": "test123456",
+  "nombre": "Omar",
+  "apellido": "Rodriguez",
+  "direccion": "Av. Las Heras 123",
+  "telefono": "+54 261 123-4567"
+}
+
+### 1.2 Login de usuario
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=omar_test&password=test123456
+
+### 1.3 Obtener perfil actual (endpoint legacy)
+GET {{baseUrl}}/usuarios/me/profile
+Authorization: {{token}}
+
+### ===========================================
+### 2. GESTIÓN DE USUARIOS
+### ===========================================
+
+### 2.1 Obtener mi perfil completo
+GET {{baseUrl}}/usuarios/me
+Authorization: {{token}}
+
+### 2.2 Actualizar mi perfil
+PUT {{baseUrl}}/usuarios/me
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Omar Actualizado",
+  "apellido": "Rodriguez Correa",
+  "telefono": "+54 261 987-6543",
+  "direccion": "Nueva Dirección 456",
+  "ciudad": "Mendoza",
+  "provincia": "Mendoza",
+  "codigo_postal": "5500"
+}
+
+### 2.3 Obtener usuario por username
+GET {{baseUrl}}/usuarios/omar_test
+
+### ===========================================
+### 3. PRODUCTOS
+### ===========================================
+
+### 3.1 Listar todos los productos
+GET {{baseUrl}}/products/
+
+### 3.2 Productos con paginación
+GET {{baseUrl}}/products/?page=1&page_size=5
+
+### 3.3 Filtrar por categoría
+GET {{baseUrl}}/products/?categoria=Tecnología
+
+### 3.4 Filtrar por vendedor
+GET {{baseUrl}}/products/?vendedor_id=1
+
+### 3.5 Buscar por texto
+GET {{baseUrl}}/products/?search=smartphone
+
+### 3.6 Filtros combinados
+GET {{baseUrl}}/products/?categoria=Vehículos&search=auto&page=1&page_size=3
+
+### 3.7 Crear nuevo producto
+POST {{baseUrl}}/products/
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "MacBook Pro M3 14 pulgadas",
+  "descripcion": "Laptop Apple MacBook Pro con chip M3, 16GB RAM, 512GB SSD. Estado impecable, poco uso, incluye cargador original.",
+  "precio": 450000.00,
+  "stock": 1,
+  "categoria": "Tecnología",
+  "imagen_url": "https://example.com/macbook-m3.jpg"
+}
+
+### 3.8 Obtener producto específico
+GET {{baseUrl}}/products/1
+
+### 3.9 Actualizar mi producto
+PUT {{baseUrl}}/products/1
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "MacBook Pro M3 - PRECIO REBAJADO",
+  "precio": 420000.00,
+  "stock": 1,
+  "descripcion": "OFERTA! Laptop Apple MacBook Pro con chip M3, precio rebajado por venta rápida."
+}
+
+### 3.10 Obtener mis productos
+GET {{baseUrl}}/products/mis-productos
+Authorization: {{token}}
+
+### 3.11 Eliminar mi producto
+DELETE {{baseUrl}}/products/1
+Authorization: {{token}}
+
+### ===========================================
+### 4. CALIFICACIONES DE PRODUCTOS
+### ===========================================
+
+### 4.1 Agregar calificación
+POST {{baseUrl}}/products/2/reviews
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "puntuacion": 5,
+  "comentario": "Excelente producto! Tal como se describía, vendedor muy confiable. Recomendado 100%."
+}
+
+### 4.2 Ver calificaciones de producto
+GET {{baseUrl}}/products/2/reviews
+
+### 4.3 Ver mi calificación de un producto
+GET {{baseUrl}}/products/2/reviews/my-review
+Authorization: {{token}}
+
+### ===========================================
+### 5. SISTEMA DE PEDIDOS
+### ===========================================
+
+### 5.1 Crear pedido
+POST {{baseUrl}}/orders/
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "producto_id": 2,
+      "cantidad": 1,
+      "precio_unitario": 75000.00
+    },
+    {
+      "producto_id": 3,
+      "cantidad": 2,
+      "precio_unitario": 25000.00
+    }
+  ]
+}
+
+### 5.2 Ver mis pedidos
+GET {{baseUrl}}/orders/
+Authorization: {{token}}
+
+### 5.3 Ver pedido específico
+GET {{baseUrl}}/orders/1
+Authorization: {{token}}
+
+### ===========================================
+### 6. SISTEMA DE MENSAJERÍA
+### ===========================================
+
+### 6.1 Crear conversación
+POST {{baseUrl}}/conversations/
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "usuario2_id": 2
+}
+
+### 6.2 Ver mis conversaciones
+GET {{baseUrl}}/conversations/
+Authorization: {{token}}
+
+### 6.3 Ver mensajes de conversación
+GET {{baseUrl}}/conversations/1/messages
+Authorization: {{token}}
+
+### 6.4 Enviar mensaje
+POST {{baseUrl}}/conversations/1/messages
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "contenido": "Hola! Me interesa tu producto. ¿Podrías darme más detalles sobre el estado?"
+}
+
+### 6.5 Enviar otro mensaje
+POST {{baseUrl}}/conversations/1/messages
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "contenido": "¿Aceptas efectivo? ¿Dónde podríamos encontrarnos para ver el producto?"
+}
+
+### ===========================================
+### 7. FLUJOS DE TESTING COMPLETOS
+### ===========================================
+
+### FLUJO 1: Usuario nuevo
+# 1. POST /auth/register
+# 2. POST /auth/login (copiar token)
+# 3. GET /usuarios/me (verificar perfil)
+# 4. PUT /usuarios/me (actualizar datos)
+
+### FLUJO 2: CRUD Productos
+# 1. POST /products/ (crear producto)
+# 2. GET /products/ (listar todos)
+# 3. GET /products/mis-productos (mis productos)
+# 4. PUT /products/{id} (actualizar)
+# 5. DELETE /products/{id} (eliminar)
+
+### FLUJO 3: Proceso de compra
+# 1. GET /products/ (explorar productos)
+# 2. GET /products/?categoria=Tecnología (filtrar)
+# 3. POST /orders/ (crear pedido)
+# 4. GET /orders/ (verificar pedido)
+
+### FLUJO 4: Interacción vendedor-comprador
+# 1. POST /conversations/ (iniciar conversación)
+# 2. POST /conversations/1/messages (preguntar por producto)
+# 3. GET /conversations/1/messages (leer respuestas)
+# 4. POST /products/1/reviews (calificar producto)
+
+### ===========================================
+### 8. CASOS DE PRUEBA ESPECÍFICOS
+### ===========================================
+
+### 8.1 Productos por categorías de tu constants.ts
+GET {{baseUrl}}/products/?categoria=Tecnología
+###
+GET {{baseUrl}}/products/?categoria=Hogar
+###
+GET {{baseUrl}}/products/?categoria=Ropa
+###
+GET {{baseUrl}}/products/?categoria=Deportes
+###
+GET {{baseUrl}}/products/?categoria=Vehículos
+###
+GET {{baseUrl}}/products/?categoria=Libros
+###
+GET {{baseUrl}}/products/?categoria=Otros
+
+### 8.2 Búsquedas típicas
+GET {{baseUrl}}/products/?search=iphone
+###
+GET {{baseUrl}}/products/?search=auto
+###
+GET {{baseUrl}}/products/?search=casa
+###
+GET {{baseUrl}}/products/?search=libro
+
+### 8.3 Paginación con diferentes tamaños
+GET {{baseUrl}}/products/?page=1&page_size=2
+###
+GET {{baseUrl}}/products/?page=2&page_size=2
+###
+GET {{baseUrl}}/products/?page=1&page_size=10
+
+### ===========================================
+### 9. CASOS DE ERROR (para testing)
+### ===========================================
+
+### 9.1 Producto inexistente
+GET {{baseUrl}}/products/999
+
+### 9.2 Login con credenciales incorrectas
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=noexiste&password=wrong
+
+### 9.3 Acceso sin token
+GET {{baseUrl}}/usuarios/me
+
+### 9.4 Crear producto sin autenticación
+POST {{baseUrl}}/products/
+Content-Type: application/json
+
+{
+  "nombre": "Test Product",
+  "precio": 1000
+}
+
+### ===========================================
+### NOTAS IMPORTANTES
+### ===========================================
+
+# 1. Ejecutar estos requests en orden para mejor testing
+# 2. Reemplazar YOUR_TOKEN_AQUI con el token del login
+# 3. Asegurarse que el backend esté corriendo en puerto 8000
+# 4. Algunos endpoints requieren datos previos (ej: tener productos para hacer pedidos)
+# 5. Los IDs deben corresponder a registros existentes en tu BD
+# 6. Para testing completo, crear varios usuarios y productos
+
+### ===========================================
+### COMANDOS DE BACKEND
+### ===========================================
+
+# Para iniciar el backend:
+# cd ecommerce_backend
+# source venv/bin/activate  (o venv\Scripts\activate en Windows)
+# uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+
+# Documentación automática disponible en:
+# http://127.0.0.1:8000/docs

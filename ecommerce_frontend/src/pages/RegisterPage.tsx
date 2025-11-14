@@ -102,8 +102,8 @@ const RegisterPage = () => {
         email: formData.email.trim().toLowerCase(),
         nombre: formData.nombre.trim(),
         apellido: formData.apellido.trim(),
-        direccion: formData.direccion.trim() || null,
-        telefono: formData.telefono.trim() || null,
+        direccion: formData.direccion.trim() || undefined, // ← ARREGLADO: null → undefined
+        telefono: formData.telefono.trim() || undefined, // ← ARREGLADO: null → undefined
         password: formData.password
       };
 
