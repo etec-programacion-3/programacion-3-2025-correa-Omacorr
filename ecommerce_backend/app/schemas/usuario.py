@@ -20,8 +20,9 @@ class UsuarioCreate(BaseModel):
     def validate_username(cls, v):
         if len(v) < 3:
             raise ValueError('El username debe tener al menos 3 caracteres')
-        if not v.isalnum():
-            raise ValueError('El username solo puede contener letras y números')
+        # Permitir letras, números y guiones bajos
+        if not all(c.isalnum() or c == '_' for c in v):
+            raise ValueError('El username solo puede contener letras, números y guiones bajos')
         return v
     
     @validator('password')

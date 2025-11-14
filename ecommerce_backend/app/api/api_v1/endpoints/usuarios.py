@@ -1,5 +1,3 @@
-# REEMPLAZAR COMPLETAMENTE tu archivo app/api/api_v1/endpoints/usuarios.py:
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.api import deps
@@ -9,23 +7,8 @@ from typing import List
 
 router = APIRouter()
 
-@router.get("/{username}", response_model=UsuarioPublico)
-def get_user_by_username(
-    username: str,
-    db: Session = Depends(deps.get_db)
-):
-    """
-    Obtener usuario por username (endpoint existente)
-    """
-    usuario = db.query(Usuario).filter(Usuario.username == username).first()
-    if not usuario:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
-        )
-    return usuario
-
-# ⭐ NUEVOS ENDPOINTS PARA FUNCIONALIDAD COMPLETA:
+# ⚠️ IMPORTANTE: Los endpoints específicos deben ir ANTES de los dinámicos
+# /me debe ir ANTES de /{username} para que FastAPI no lo confunda
 
 @router.get("/me/profile", response_model=UsuarioCompleto)
 def get_current_user_profile_legacy(
@@ -76,3 +59,20 @@ def update_current_user_profile(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Error actualizando perfil: {str(e)}"
         )
+
+# ⚠️ Este endpoint debe ir AL FINAL porque es dinámico
+@router.get("/{username}", response_model=UsuarioPublico)
+def get_user_by_username(
+    username: str,
+    db: Session = Depends(deps.get_db)
+):
+    """
+    Obtener usuario público por username
+    """
+    usuario = db.query(Usuario).filter(Usuario.username == username).first()
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    return usuario

@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from .core.config import settings
+from .models.base import Base
 
 # Crear el engine
 engine = create_engine(
@@ -19,3 +20,9 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# Función para crear las tablas
+def create_tables():
+    # Importar todos los modelos para que SQLAlchemy los registre
+    from .models import usuario, producto, pedido, mensaje, calificacion
+    Base.metadata.create_all(bind=engine)

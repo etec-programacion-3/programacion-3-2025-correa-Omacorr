@@ -67,10 +67,36 @@ source venv/bin/activate
 
 # Instalar dependencias
 pip install -r requirements.txt
-
-# Crear base de datos y ejecutar migraciones
-python -c "from app.database import create_tables; create_tables()"
 ```
+
+**⚠️ IMPORTANTE: Configurar variables de entorno ANTES de crear la base de datos**
+
+1. Crea el archivo `.env` copiando el ejemplo:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **GENERA un SECRET_KEY seguro**:
+   ```bash
+   python -c "import secrets; print(secrets.token_urlsafe(32))"
+   ```
+
+3. Edita el archivo `.env` y reemplaza `your-secret-key-here` con la clave generada
+
+4. Verifica que el archivo `.env` tenga este contenido:
+   ```env
+   DATABASE_URL=sqlite:///./ecommerce.db
+   SECRET_KEY=tu-clave-generada-aqui
+   ALGORITHM=HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES=30
+   PROJECT_NAME=E-commerce API
+   VERSION=1.0.0
+   ```
+
+5. **Ahora sí, crea las tablas**:
+   ```bash
+   python -c "from app.database import create_tables; create_tables()"
+   ```
 
 ### 3. Configurar el Frontend
 
@@ -109,7 +135,7 @@ cd ecommerce_frontend
 npm run dev
 ```
 
-**El frontend estará disponible en:** `http://localhost:5173` o `http://localhost:5174`
+**El frontend estará disponible en:** `http://localhost:5174`
 
 ## 🔧 Variables de Entorno
 
@@ -120,7 +146,7 @@ npm run dev
 DATABASE_URL=sqlite:///./ecommerce.db
 
 # JWT
-SECRET_KEY=tu-clave-secreta-muy-segura-aqui-cambiar-en-produccion
+SECRET_KEY=your-secret-key-here
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
@@ -132,6 +158,20 @@ HOST=127.0.0.1
 PORT=8000
 DEBUG=True
 ```
+
+**⚠️ IMPORTANTE: Cómo generar un SECRET_KEY seguro**
+
+Para generar una clave secreta segura, ejecuta uno de estos comandos en tu terminal:
+
+```bash
+# Opción 1: Usando Python
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# Opción 2: Usando OpenSSL
+openssl rand -hex 32
+```
+
+Copia el resultado generado y reemplaza `your-secret-key-here` en tu archivo `.env`.
 
 ### Frontend (`ecommerce_frontend/.env`)
 
@@ -163,7 +203,35 @@ VITE_NODE_ENV=development
 
 ## 🧪 Pruebas de la API
 
-Consulta el archivo `requests.http` en la raíz del proyecto para ejemplos de todas las llamadas a la API.
+### Usando el archivo `requests-testing.http`
+
+El proyecto incluye un archivo `ecommerce_backend/requests-testing.http` con todos los endpoints documentados.
+
+**Pasos para probar la API:**
+
+1. **Asegúrate de que el backend esté corriendo** en `http://127.0.0.1:8000`
+
+2. **Abre** `ecommerce_backend/requests-testing.http` en VS Code (con extensión REST Client)
+
+3. **Sigue el flujo de autenticación:**
+   - Ejecuta el **REGISTRO** (sección 1.1) para crear un usuario
+   - Ejecuta el **LOGIN** (sección 1.2.1 es más simple) para obtener un token
+   - **Copia** el valor de `access_token` de la respuesta
+   - **Edita la línea 7** del archivo: `@token = Bearer tu_token_copiado_aqui`
+   - **Guarda** el archivo (Ctrl+S)
+
+4. **Ahora puedes ejecutar** todos los endpoints protegidos
+
+**Notas importantes:**
+- Los tokens expiran en 30 minutos
+- El endpoint de login requiere el **EMAIL** (no el username) en el campo `username` para OAuth2
+- Usa `/auth/login-simple` si prefieres enviar JSON en lugar de form-data
+
+### Documentación interactiva
+
+También puedes usar Swagger UI:
+- Visita: `http://127.0.0.1:8000/docs`
+- Click en "Authorize" y pega tu token con el formato: `Bearer tu_token_aqui`
 
 ## 🗂️ Estructura del Proyecto
 
@@ -238,6 +306,60 @@ ecommerce-platform/
 - **CORS configurado** correctamente
 - **Variables de entorno** para datos sensibles
 
+## 🐛 Troubleshooting (Solución de Problemas)
+
+### Error: "No se pudieron validar las credenciales" (401)
+
+**Causas comunes:**
+1. No copiaste el token correctamente en el archivo `requests-testing.http`
+2. El token expiró (duran 30 minutos)
+3. No guardaste el archivo después de pegar el token
+4. El servidor no se reinició después de crear el archivo `.env`
+
+**Solución:**
+1. Ejecuta el login nuevamente para obtener un token fresco
+2. Copia el `access_token` completo (sin espacios extra)
+3. Edita línea 7: `@token = Bearer tu_token_aqui`
+4. Guarda el archivo (Ctrl+S)
+5. Prueba nuevamente
+
+### Error: "Usuario no encontrado" (404)
+
+**Causas:**
+- No existe un usuario con ese username/email en la base de datos
+- La base de datos está vacía
+
+**Solución:**
+1. Ejecuta el registro (sección 1.1 del archivo requests)
+2. Verifica que la base de datos se creó: `ls ecommerce_backend/ecommerce.db`
+
+### Error al crear tablas: "Extra inputs are not permitted"
+
+**Causa:** El archivo `.env` tiene campos que no están en la configuración
+
+**Solución:**
+Asegúrate de que tu `.env` solo tenga estos campos:
+```env
+DATABASE_URL=sqlite:///./ecommerce.db
+SECRET_KEY=tu-clave-aqui
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+PROJECT_NAME=E-commerce API
+VERSION=1.0.0
+```
+
+### El login no funciona (401)
+
+**Causa:** El endpoint `/auth/login` requiere el **EMAIL** en el campo `username` (no el username)
+
+**Solución:**
+Usa el EMAIL al hacer login:
+```
+username=omar@test.com&password=test123456
+```
+
+O usa el endpoint alternativo `/auth/login-simple` con JSON
+
 ## 🚀 Próximas Funcionalidades
 
 - [ ] Sistema de upload de imágenes
@@ -256,5 +378,3 @@ Este proyecto fue desarrollado como parte del curso de Programación 3.
 Este proyecto es de uso académico y educativo.
 
 ---
-
-**Desarrollado con ❤️ por Omar para Programación 3 - 2025**
